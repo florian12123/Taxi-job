@@ -1,6 +1,6 @@
 ---@param msg string
 ---@param nType? string
-function AVNotify(msg, nType)
+function TaxiNotify(msg, nType)
     nType = nType or 'info'
     local mode = Config.Notify or 'auto'
 
@@ -27,7 +27,7 @@ end
 ---@param player number
 ---@param msg string
 ---@param nType? string
-function AVNotifyServer(player, msg, nType)
+function TaxiNotifyServer(player, msg, nType)
     nType = nType or 'info'
     local mode = Config.Notify or 'auto'
 

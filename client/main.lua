@@ -218,7 +218,7 @@ RegisterNUICallback('confirmRate', function(data, cb)
         return
     end
 
-    TriggerServerEvent('av_taximeter:setRate', rate)
+    TriggerServerEvent('taximeter:setRate', rate)
     cb('ok')
 end)
 
@@ -243,7 +243,7 @@ end
 RegisterNUICallback('tipPay', function(data, cb)
     local percent = tonumber(data and data.percent)
     if pendingTipDriver and percent then
-        TriggerServerEvent('av_taximeter:giveTip', pendingTipDriver, percent)
+        TriggerServerEvent('taximeter:giveTip', pendingTipDriver, percent)
     end
     pendingTipDriver = nil
     closeTipUi()
@@ -252,14 +252,14 @@ end)
 
 RegisterNUICallback('tipSkip', function(_, cb)
     if pendingTipDriver then
-        TriggerServerEvent('av_taximeter:skipTip', pendingTipDriver)
+        TriggerServerEvent('taximeter:skipTip', pendingTipDriver)
     end
     pendingTipDriver = nil
     closeTipUi()
     cb('ok')
 end)
 
-RegisterNetEvent('av_taximeter:showTip', function(data)
+RegisterNetEvent('taximeter:showTip', function(data)
     if not data or not data.driverId then
         return
     end
@@ -299,7 +299,7 @@ local function startUpdateLoop()
             local speed = GetEntitySpeed(vehicle) * 3.6
             local isDriving = speed >= Config.DrivingSpeedKmh
 
-            TriggerServerEvent('av_taximeter:updatePosition', {
+            TriggerServerEvent('taximeter:updatePosition', {
                 x = coords.x,
                 y = coords.y,
                 z = coords.z,
@@ -361,10 +361,10 @@ local function acceptTariff()
         return
     end
 
-    TriggerServerEvent('av_taximeter:passengerAgree', currentDriverId)
+    TriggerServerEvent('taximeter:passengerAgree', currentDriverId)
 end
 
-RegisterNetEvent('av_taximeter:sessionState', function(payload)
+RegisterNetEvent('taximeter:sessionState', function(payload)
     hasSession = payload and payload.active ~= false
     meterCounting = payload and payload.meterStarted or false
 
@@ -377,7 +377,7 @@ RegisterNetEvent('av_taximeter:sessionState', function(payload)
     end
 end)
 
-RegisterNetEvent('av_taximeter:meterStarted', function(payload)
+RegisterNetEvent('taximeter:meterStarted', function(payload)
     hasSession = true
     meterCounting = true
     passengerAgreed = not isDriver
@@ -391,7 +391,7 @@ RegisterNetEvent('av_taximeter:meterStarted', function(payload)
     end
 end)
 
-RegisterNetEvent('av_taximeter:updateDisplay', function(payload)
+RegisterNetEvent('taximeter:updateDisplay', function(payload)
     refreshVehicleState()
 
     if isDriver then
@@ -404,7 +404,7 @@ RegisterNetEvent('av_taximeter:updateDisplay', function(payload)
     end
 end)
 
-RegisterNetEvent('av_taximeter:syncDisplay', function(payload, driverId)
+RegisterNetEvent('taximeter:syncDisplay', function(payload, driverId)
     refreshVehicleState()
 
     if isDriver then
@@ -423,7 +423,7 @@ RegisterNetEvent('av_taximeter:syncDisplay', function(payload, driverId)
     end
 end)
 
-RegisterNetEvent('av_taximeter:requestAccept', function(payload, driverId)
+RegisterNetEvent('taximeter:requestAccept', function(payload, driverId)
     refreshVehicleState()
 
     if isDriver then
@@ -433,7 +433,7 @@ RegisterNetEvent('av_taximeter:requestAccept', function(payload, driverId)
     showAcceptPrompt(payload, driverId)
 end)
 
-RegisterNetEvent('av_taximeter:acceptConfirmed', function(payload)
+RegisterNetEvent('taximeter:acceptConfirmed', function(payload)
     passengerAgreed = true
     waitingAccept = false
     meterCounting = payload and payload.meterStarted or false
@@ -445,7 +445,7 @@ RegisterNetEvent('av_taximeter:acceptConfirmed', function(payload)
     end
 end)
 
-RegisterNetEvent('av_taximeter:hideAccept', function()
+RegisterNetEvent('taximeter:hideAccept', function()
     waitingAccept = false
     passengerAgreed = false
     SendNUIMessage({ action = 'hideAccept' })
@@ -455,7 +455,7 @@ RegisterNetEvent('av_taximeter:hideAccept', function()
     end
 end)
 
-RegisterNetEvent('av_taximeter:promptRate', function()
+RegisterNetEvent('taximeter:promptRate', function()
     refreshVehicleState()
     if canUseMeter then
         openRateWindow()
@@ -472,12 +472,12 @@ local function resetTaximeterCompletely()
     currentDriverId = nil
     passengerAgreed = false
     waitingAccept = false
-    TriggerServerEvent('av_taximeter:stop')
+    TriggerServerEvent('taximeter:stop')
 end
 
-RegisterNetEvent('av_taxijob:resetTaximeter', resetTaximeterCompletely)
+RegisterNetEvent('taxijob:resetTaximeter', resetTaximeterCompletely)
 
-RegisterNetEvent('av_taximeter:forceHide', function()
+RegisterNetEvent('taximeter:forceHide', function()
     resetTaximeterCompletely()
 end)
 
@@ -505,7 +505,7 @@ RegisterCommand(Config.Command.reset, function()
         return
     end
 
-    TriggerServerEvent('av_taximeter:reset')
+    TriggerServerEvent('taximeter:reset')
 end, false)
 
 RegisterCommand(Config.Command.bill, function()
@@ -521,7 +521,7 @@ RegisterCommand(Config.Command.bill, function()
         return
     end
 
-    TriggerServerEvent('av_taximeter:billPassenger', passengerId)
+    TriggerServerEvent('taximeter:billPassenger', passengerId)
 end, false)
 
 RegisterCommand(Config.Command.accept, function()
@@ -554,7 +554,7 @@ RegisterNetEvent('esx:setJob', function(job)
         hideMeter()
         stopUpdateLoop()
         ratePrompted = false
-        TriggerServerEvent('av_taximeter:stop')
+        TriggerServerEvent('taximeter:stop')
     end
 end)
 
@@ -578,7 +578,7 @@ CreateThread(function()
             stopUpdateLoop()
             ratePrompted = false
             trackedVehicle = 0
-            TriggerServerEvent('av_taximeter:stop')
+            TriggerServerEvent('taximeter:stop')
         end
 
         if inVehicle and not isDriver and not canUseMeter then
@@ -586,16 +586,16 @@ CreateThread(function()
 
             if driverId and driverId ~= lastDriverId then
                 if lastDriverId then
-                    TriggerServerEvent('av_taximeter:passengerLeft', lastDriverId)
+                    TriggerServerEvent('taximeter:passengerLeft', lastDriverId)
                 end
 
                 lastDriverId = driverId
                 currentDriverId = driverId
                 passengerAgreed = false
                 waitingAccept = false
-                TriggerServerEvent('av_taximeter:passengerEntered', driverId)
+                TriggerServerEvent('taximeter:passengerEntered', driverId)
             elseif not driverId and lastDriverId then
-                TriggerServerEvent('av_taximeter:passengerLeft', lastDriverId)
+                TriggerServerEvent('taximeter:passengerLeft', lastDriverId)
                 lastDriverId = nil
                 currentDriverId = nil
                 passengerAgreed = false
@@ -603,7 +603,7 @@ CreateThread(function()
                 SendNUIMessage({ action = 'hideAccept' })
             end
         elseif wasPassenger and lastDriverId then
-            TriggerServerEvent('av_taximeter:passengerLeft', lastDriverId)
+            TriggerServerEvent('taximeter:passengerLeft', lastDriverId)
             lastDriverId = nil
             currentDriverId = nil
             passengerAgreed = false
@@ -618,7 +618,7 @@ CreateThread(function()
             trackedVehicle = 0
 
             if lastDriverId then
-                TriggerServerEvent('av_taximeter:passengerLeft', lastDriverId)
+                TriggerServerEvent('taximeter:passengerLeft', lastDriverId)
                 lastDriverId = nil
             end
 

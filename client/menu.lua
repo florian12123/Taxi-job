@@ -1,9 +1,9 @@
-local menuNamespace = 'av_taxijob'
+local menuNamespace = 'taxijob'
 
 ---@param elements table
 ---@param onSelect function|nil
 ---@return boolean opened
-function AVOpenMenu(elements, onSelect)
+function TaxiOpenMenu(elements, onSelect)
     if not elements or #elements == 0 then
         return false
     end
@@ -58,7 +58,7 @@ function AVOpenMenu(elements, onSelect)
     return true
 end
 
-function AVCloseMenu()
+function TaxiCloseMenu()
     if GetResourceState('esx_context') == 'started' then
         ESX.CloseContext()
     end

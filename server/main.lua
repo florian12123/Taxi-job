@@ -201,7 +201,7 @@ local function syncToVehicleOccupants(driverSrc, payload)
                 local syncPayload = payload
                 syncPayload.passengerAgreed = agreed or false
                 syncPayload.needsAccept = session and session.active and not agreed
-                TriggerClientEvent('av_taximeter:syncDisplay', targetSrc, syncPayload, driverSrc)
+                TriggerClientEvent('taximeter:syncDisplay', targetSrc, syncPayload, driverSrc)
             end
         end
     end
@@ -214,7 +214,7 @@ local function pushSessionState(driverSrc)
     end
 
     local payload = buildPayload(session)
-    TriggerClientEvent('av_taximeter:sessionState', driverSrc, payload)
+    TriggerClientEvent('taximeter:sessionState', driverSrc, payload)
     syncToVehicleOccupants(driverSrc, payload)
 end
 
@@ -232,7 +232,7 @@ local function requestPassengerAccept(driverSrc, passengerSrc)
     payload.needsAccept = true
     payload.passengerAgreed = false
 
-    TriggerClientEvent('av_taximeter:requestAccept', passengerSrc, payload, driverSrc)
+    TriggerClientEvent('taximeter:requestAccept', passengerSrc, payload, driverSrc)
 end
 
 local function requestAllPassengersAccept(driverSrc)
@@ -306,11 +306,11 @@ local function startMeterForDriver(driverSrc)
     Config.Functions.serverNotify(driverSrc, Config.Locales.meter_started, 'success')
 
     local payload = buildPayload(session)
-    TriggerClientEvent('av_taximeter:meterStarted', driverSrc, payload)
+    TriggerClientEvent('taximeter:meterStarted', driverSrc, payload)
     syncToVehicleOccupants(driverSrc, payload)
 end
 
-RegisterNetEvent('av_taximeter:setRate', function(pricePerKm)
+RegisterNetEvent('taximeter:setRate', function(pricePerKm)
     local src = source
     local xPlayer = ESX.GetPlayerFromId(src)
 
@@ -348,7 +348,7 @@ RegisterNetEvent('av_taximeter:setRate', function(pricePerKm)
     pushSessionState(src)
 end)
 
-RegisterNetEvent('av_taximeter:stop', function()
+RegisterNetEvent('taximeter:stop', function()
     local src = source
     local session = getSession(src)
     if not session then
@@ -358,12 +358,12 @@ RegisterNetEvent('av_taximeter:stop', function()
     local payload = buildPayload(session)
     payload.active = false
 
-    TriggerClientEvent('av_taximeter:sessionState', src, payload)
+    TriggerClientEvent('taximeter:sessionState', src, payload)
     syncToVehicleOccupants(src, payload)
     clearSession(src)
 end)
 
-RegisterNetEvent('av_taximeter:reset', function()
+RegisterNetEvent('taximeter:reset', function()
     local src = source
     local xPlayer = ESX.GetPlayerFromId(src)
 
@@ -391,7 +391,7 @@ RegisterNetEvent('av_taximeter:reset', function()
     pushSessionState(src)
 end)
 
-RegisterNetEvent('av_taximeter:updatePosition', function(coords, isDriving)
+RegisterNetEvent('taximeter:updatePosition', function(coords, isDriving)
     local src = source
     local session = getSession(src)
 
@@ -403,7 +403,7 @@ RegisterNetEvent('av_taximeter:updatePosition', function(coords, isDriving)
 
     if not session.meterStarted or not hasAgreedPassenger(session) then
         local payload = buildPayload(session)
-        TriggerClientEvent('av_taximeter:updateDisplay', src, payload)
+        TriggerClientEvent('taximeter:updateDisplay', src, payload)
         syncToVehicleOccupants(src, payload)
         return
     end
@@ -422,18 +422,18 @@ RegisterNetEvent('av_taximeter:updatePosition', function(coords, isDriving)
     end
 
     local payload = buildPayload(session)
-    TriggerClientEvent('av_taximeter:updateDisplay', src, payload)
+    TriggerClientEvent('taximeter:updateDisplay', src, payload)
     syncToVehicleOccupants(src, payload)
 end)
 
-RegisterNetEvent('av_taximeter:passengerEntered', function(driverServerId)
+RegisterNetEvent('taximeter:passengerEntered', function(driverServerId)
     local src = source
     local driver = tonumber(driverServerId)
     local session = getSession(driver)
 
     if not session or not session.active then
         Config.Functions.serverNotify(src, Config.Locales.no_driver_rate, 'error')
-        TriggerClientEvent('av_taximeter:promptRate', driver)
+        TriggerClientEvent('taximeter:promptRate', driver)
         return
     end
 
@@ -441,7 +441,7 @@ RegisterNetEvent('av_taximeter:passengerEntered', function(driverServerId)
     Config.Functions.serverNotify(driver, Config.Locales.driver_passenger_waiting, 'info')
 end)
 
-RegisterNetEvent('av_taximeter:passengerAgree', function(driverServerId)
+RegisterNetEvent('taximeter:passengerAgree', function(driverServerId)
     local src = source
     local driver = tonumber(driverServerId)
     local session = getSession(driver)
@@ -485,10 +485,10 @@ RegisterNetEvent('av_taximeter:passengerAgree', function(driverServerId)
     payload.needsAccept = false
     payload.passengerAgreed = true
 
-    TriggerClientEvent('av_taximeter:acceptConfirmed', src, payload)
+    TriggerClientEvent('taximeter:acceptConfirmed', src, payload)
 end)
 
-RegisterNetEvent('av_taximeter:passengerLeft', function(driverServerId)
+RegisterNetEvent('taximeter:passengerLeft', function(driverServerId)
     local src = source
     local driver = tonumber(driverServerId)
     local session = getSession(driver)
@@ -505,7 +505,7 @@ RegisterNetEvent('av_taximeter:passengerLeft', function(driverServerId)
         session.pendingPassengers = session.pendingPassengers - 1
     end
 
-    TriggerClientEvent('av_taximeter:hideAccept', src)
+    TriggerClientEvent('taximeter:hideAccept', src)
 
     if not hasAgreedPassenger(session) then
         session.meterStarted = false
@@ -517,7 +517,7 @@ RegisterNetEvent('av_taximeter:passengerLeft', function(driverServerId)
     pushSessionState(driver)
 end)
 
-RegisterNetEvent('av_taximeter:updateWaypoint', function(driverServerId, coords, hasWaypoint)
+RegisterNetEvent('taximeter:updateWaypoint', function(driverServerId, coords, hasWaypoint)
     if not Config.Map or Config.Map.enabled == false then
         return
     end
@@ -562,7 +562,7 @@ RegisterNetEvent('av_taximeter:updateWaypoint', function(driverServerId, coords,
     pushSessionState(driver)
 end)
 
-RegisterNetEvent('av_taximeter:giveTip', function(driverServerId, percent)
+RegisterNetEvent('taximeter:giveTip', function(driverServerId, percent)
     local src = source
 
     if not Config.Tips or Config.Tips.enabled == false then
@@ -624,7 +624,7 @@ RegisterNetEvent('av_taximeter:giveTip', function(driverServerId, percent)
     pendingTips[src] = nil
 end)
 
-RegisterNetEvent('av_taximeter:skipTip', function(driverServerId)
+RegisterNetEvent('taximeter:skipTip', function(driverServerId)
     local src = source
     local pending = pendingTips[src]
 
@@ -633,7 +633,7 @@ RegisterNetEvent('av_taximeter:skipTip', function(driverServerId)
     end
 end)
 
-RegisterNetEvent('av_taximeter:billPassenger', function(targetServerId)
+RegisterNetEvent('taximeter:billPassenger', function(targetServerId)
     local src = source
     local xDriver = ESX.GetPlayerFromId(src)
     local session = getSession(src)
@@ -710,7 +710,7 @@ RegisterNetEvent('av_taximeter:billPassenger', function(targetServerId)
             expires = os.time() + (Config.Tips.timeoutSeconds or 90),
         }
 
-        TriggerClientEvent('av_taximeter:showTip', target, {
+        TriggerClientEvent('taximeter:showTip', target, {
             driverId = src,
             fare = fare,
             driverName = xDriver.getName(),
@@ -755,6 +755,6 @@ end)
 AddEventHandler('esx:setJob', function(playerId, job)
     if job.name ~= Config.JobName then
         clearSession(playerId)
-        TriggerClientEvent('av_taximeter:forceHide', playerId)
+        TriggerClientEvent('taximeter:forceHide', playerId)
     end
 end)

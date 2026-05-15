@@ -3,7 +3,7 @@ local lastNpcSuccess = {}
 
 CreateThread(function()
     if GetResourceState('esx_society') ~= 'started' then
-        print('^3[AV_TaxiJob]^7 esx_society nicht gefunden – Society-Registrierung übersprungen.')
+        print('^3[TaxiJob]^7 esx_society nicht gefunden – Society-Registrierung übersprungen.')
         return
     end
 
@@ -38,11 +38,11 @@ local function spawnJobVehicle(source, model, props, cb)
         return
     end
 
-    TriggerClientEvent('av_taxijob:spawnVehicleClient', source, model, props)
+    TriggerClientEvent('taxijob:spawnVehicleClient', source, model, props)
     cb(true)
 end
 
-ESX.RegisterServerCallback('av_taxijob:spawnVehicle', function(source, cb, model, props)
+ESX.RegisterServerCallback('taxijob:spawnVehicle', function(source, cb, model, props)
     local xPlayer = ESX.GetPlayerFromId(source)
 
     if not xPlayer or xPlayer.job.name ~= Config.JobName then
@@ -57,7 +57,7 @@ ESX.RegisterServerCallback('av_taxijob:spawnVehicle', function(source, cb, model
     end)
 end)
 
-ESX.RegisterServerCallback('av_taxijob:getTripLog', function(source, cb)
+ESX.RegisterServerCallback('taxijob:getTripLog', function(source, cb)
     local xPlayer = ESX.GetPlayerFromId(source)
 
     if not xPlayer or xPlayer.job.name ~= Config.JobName then
@@ -73,7 +73,7 @@ ESX.RegisterServerCallback('av_taxijob:getTripLog', function(source, cb)
     cb(GetDriverTrips(xPlayer.identifier, Config.TripLog.menuLimit or 15))
 end)
 
-RegisterNetEvent('av_taxijob:npcSuccess', function()
+RegisterNetEvent('taxijob:npcSuccess', function()
     local src = source
     local xPlayer = ESX.GetPlayerFromId(src)
 

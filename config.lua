@@ -206,13 +206,13 @@ Config.Functions = {
         if Config.Notify == 'custom' then
             return
         end
-        AVNotify(msg, nType)
+        TaxiNotify(msg, nType)
     end,
     serverNotify = function(player, msg, nType)
         if Config.Notify == 'custom' then
             return
         end
-        AVNotifyServer(player, msg, nType)
+        TaxiNotifyServer(player, msg, nType)
     end,
 }
 

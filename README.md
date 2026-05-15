@@ -1,4 +1,4 @@
-# AV_TaxiJob
+# TaxiJob
 
 ESX Legacy Taxi-Job mit Taxameter, Passagier-Zustimmung, Trinkgeld, Fahrtenbuch und NPC-Fahrten.
 
@@ -16,7 +16,7 @@ ESX Legacy Taxi-Job mit Taxameter, Passagier-Zustimmung, Trinkgeld, Fahrtenbuch 
 
 ## Installation
 
-1. Ordner als `AV_TaxiJob` nach `resources/` kopieren.
+1. Ordner als `TaxiJob` nach `resources/` kopieren.
 2. SQL ausführen: `sql/install.sql`
 3. Falls der Job **taxi** noch nicht existiert, SQL aus `esx_taxijob/localization/de_esx_taxijob.sql` importieren (oder `esx_taxijob` einmal starten).
 4. In `server.cfg` **nach** `es_extended` und `oxmysql`:
@@ -32,7 +32,7 @@ ensure esx_menu_default
 
 # Standard-Taxi-Job ersetzen:
 stop esx_taxijob
-ensure AV_TaxiJob
+ensure TaxiJob
 ```
 
 5. `config.lua` anpassen (Job-Name, Zonen, Preise).
@@ -57,11 +57,11 @@ ensure AV_TaxiJob
 ## Deinstallation
 
 ```cfg
-stop AV_TaxiJob
+stop TaxiJob
 ensure esx_taxijob
 ```
 
-Tabelle `av_taxijob_trips` optional per Hand löschen.
+Tabelle `taxijob_trips` optional per Hand löschen.
 
 ## Support
 

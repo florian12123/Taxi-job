@@ -114,11 +114,11 @@ local function startNpcJob()
     notify(Config.Locales.npc_drive_to_customer, 'info')
 end
 
-RegisterNetEvent('av_taxijob:startNpcJob', function()
+RegisterNetEvent('taxijob:startNpcJob', function()
     startNpcJob()
 end)
 
-RegisterNetEvent('av_taxijob:stopNpcJob', function()
+RegisterNetEvent('taxijob:stopNpcJob', function()
     stopNpcJob()
 end)
 
@@ -172,7 +172,7 @@ CreateThread(function()
                             if targetDistance <= 10.0 then
                                 TaskLeaveVehicle(currentCustomer, vehicle, 0)
                                 notify(Config.Locales.npc_arrive_dest, 'success')
-                                TriggerServerEvent('av_taxijob:npcSuccess')
+                                TriggerServerEvent('taxijob:npcSuccess')
 
                                 local customer = currentCustomer
                                 SetTimeout(60000, function()

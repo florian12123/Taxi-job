@@ -1,9 +1,9 @@
--- AV_TaxiJob – ESX Legacy Installation
+-- TaxiJob – ESX Legacy Installation
 -- Hinweis: Job "taxi" und society_taxi werden von esx_taxijob mitgeliefert.
 -- Falls noch nicht vorhanden, einmalig die Datei aus esx_taxijob importieren:
 --   resources/[esx_addons]/esx_taxijob/localization/de_esx_taxijob.sql
 
-CREATE TABLE IF NOT EXISTS `av_taxijob_trips` (
+CREATE TABLE IF NOT EXISTS `taxijob_trips` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `driver_identifier` VARCHAR(60) NOT NULL,
     `driver_name` VARCHAR(64) NOT NULL,

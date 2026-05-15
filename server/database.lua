@@ -8,7 +8,7 @@ MySQL.ready(function()
     end
 
     MySQL.query([[
-        CREATE TABLE IF NOT EXISTS av_taxijob_trips (
+        CREATE TABLE IF NOT EXISTS taxijob_trips (
             id INT UNSIGNED NOT NULL AUTO_INCREMENT,
             driver_identifier VARCHAR(60) NOT NULL,
             driver_name VARCHAR(64) NOT NULL,
@@ -38,7 +38,7 @@ function LogTaxiTrip(data)
     local total = tonumber(data.total) or (fare + tip)
 
     return MySQL.insert.await([[
-        INSERT INTO av_taxijob_trips
+        INSERT INTO taxijob_trips
             (driver_identifier, driver_name, passenger_identifier, passenger_name, distance_km, fare, tip, total)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ]], {
@@ -58,7 +58,7 @@ function UpdateTripTip(tripId, tip, total)
         return
     end
 
-    MySQL.update.await('UPDATE av_taxijob_trips SET tip = ?, total = ? WHERE id = ?', {
+    MySQL.update.await('UPDATE taxijob_trips SET tip = ?, total = ? WHERE id = ?', {
         tip,
         total,
         tripId,
@@ -74,7 +74,7 @@ function GetDriverTrips(identifier, limit)
 
     return MySQL.query.await([[
         SELECT id, passenger_name, distance_km, fare, tip, total, created_at
-        FROM av_taxijob_trips
+        FROM taxijob_trips
         WHERE driver_identifier = ?
         ORDER BY created_at DESC
         LIMIT ?

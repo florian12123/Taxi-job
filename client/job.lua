@@ -40,7 +40,7 @@ local function openCloakroom()
         { icon = 'fas fa-shirt', title = Config.Locales.wear_work, value = 'work' },
     }
 
-    AVOpenMenu(elements, function(element)
+    TaxiOpenMenu(elements, function(element)
         if element.value == 'civilian' then
             if GetResourceState('esx_skin') ~= 'started' then
                 notify('esx_skin wird benötigt.', 'error')
@@ -79,7 +79,7 @@ local function openVehicleSpawner()
         }
     end
 
-    AVOpenMenu(elements, function(element)
+    TaxiOpenMenu(elements, function(element)
         if not element.value then
             return
         end
@@ -90,7 +90,7 @@ local function openVehicleSpawner()
             return
         end
 
-        ESX.TriggerServerCallback('av_taxijob:spawnVehicle', function()
+        ESX.TriggerServerCallback('taxijob:spawnVehicle', function()
             notify(Config.Locales.vehicle_spawned:format(element.title or element.value), 'success')
         end, element.value, { plate = 'TAXI' .. math.random(100, 999) })
     end)
@@ -103,8 +103,8 @@ local function deleteJobVehicle()
     if vehicle and DoesEntityExist(vehicle) then
         if IsInAuthorizedVehicle() then
             ESX.Game.DeleteVehicle(vehicle)
-            TriggerEvent('av_taxijob:stopNpcJob')
-            TriggerEvent('av_taxijob:resetTaximeter')
+            TriggerEvent('taxijob:stopNpcJob')
+            TriggerEvent('taxijob:resetTaximeter')
             notify(Config.Locales.vehicle_stored_meter_off, 'info')
         else
             notify(Config.Locales.only_taxi, 'error')
@@ -113,7 +113,7 @@ local function deleteJobVehicle()
 end
 
 local function openTripLog()
-    ESX.TriggerServerCallback('av_taxijob:getTripLog', function(trips)
+    ESX.TriggerServerCallback('taxijob:getTripLog', function(trips)
         local elements = {
             { unselectable = true, icon = 'fas fa-book', title = Config.Locales.logbook_title },
         }
@@ -141,7 +141,7 @@ local function openTripLog()
             end
         end
 
-        AVOpenMenu(elements)
+        TaxiOpenMenu(elements)
     end)
 end
 
@@ -172,20 +172,20 @@ local function openMobileMenu()
         end
     end
 
-    AVOpenMenu(elements, function(element)
+    TaxiOpenMenu(elements, function(element)
         if element.value == 'setrate' then
-            TriggerEvent('av_taxijob:openRateWindow')
+            TriggerEvent('taxijob:openRateWindow')
         elseif element.value == 'logbook' then
             openTripLog()
         elseif element.value == 'npc_start' then
-            TriggerEvent('av_taxijob:startNpcJob')
+            TriggerEvent('taxijob:startNpcJob')
         elseif element.value == 'npc_stop' then
-            TriggerEvent('av_taxijob:stopNpcJob')
+            TriggerEvent('taxijob:stopNpcJob')
         end
     end)
 end
 
-AddEventHandler('av_taxijob:hasEnteredMarker', function(zone)
+AddEventHandler('taxijob:hasEnteredMarker', function(zone)
     if zone == 'VehicleSpawner' then
         currentAction = 'vehicle_spawner'
         currentActionMsg = Config.Locales.spawner_prompt
@@ -206,12 +206,12 @@ AddEventHandler('av_taxijob:hasEnteredMarker', function(zone)
     end
 end)
 
-AddEventHandler('av_taxijob:hasExitedMarker', function()
-    AVCloseMenu()
+AddEventHandler('taxijob:hasExitedMarker', function()
+    TaxiCloseMenu()
     currentAction = nil
 end)
 
-RegisterNetEvent('av_taxijob:spawnVehicleClient', function(model, props)
+RegisterNetEvent('taxijob:spawnVehicleClient', function(model, props)
     local spawn = Config.Zones.VehicleSpawnPoint
     local spawnCoords = vector3(spawn.Pos.x, spawn.Pos.y, spawn.Pos.z)
 
@@ -223,7 +223,7 @@ RegisterNetEvent('av_taxijob:spawnVehicleClient', function(model, props)
     end)
 end)
 
-RegisterNetEvent('av_taxijob:openRateWindow', function()
+RegisterNetEvent('taxijob:openRateWindow', function()
     if hasTaxiJob() and IsPedInAnyVehicle(PlayerPedId(), false) and GetPedInVehicleSeat(GetVehiclePedIsIn(PlayerPedId(), false), -1) == PlayerPedId() then
         ExecuteCommand(Config.Command.setrate)
     else
@@ -274,12 +274,12 @@ CreateThread(function()
             if inMarker and (not hasEnteredMarker or lastZone ~= currentZone) then
                 hasEnteredMarker = true
                 lastZone = currentZone
-                TriggerEvent('av_taxijob:hasEnteredMarker', currentZone)
+                TriggerEvent('taxijob:hasEnteredMarker', currentZone)
             end
 
             if not inMarker and hasEnteredMarker then
                 hasEnteredMarker = false
-                TriggerEvent('av_taxijob:hasExitedMarker', lastZone)
+                TriggerEvent('taxijob:hasExitedMarker', lastZone)
                 lastZone = nil
             end
         end
