@@ -1,0 +1,357 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    overflow: hidden;
+    font-family: 'Segoe UI', 'Consolas', monospace;
+    background: transparent;
+    pointer-events: none;
+}
+
+body.rate-open,
+body.rate-open .rate-box,
+.rate-box button,
+.rate-box input,
+body.tip-open,
+body.tip-open .tip-box,
+.tip-box button {
+    pointer-events: auto;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.meter {
+    position: fixed;
+    bottom: 18vh;
+    right: 2.5vh;
+    width: 24vh;
+    background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+    border: 3px solid #f5c400;
+    border-radius: 8px;
+    padding: 1.2vh;
+    color: #f5c400;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(245, 196, 0, 0.08);
+    z-index: 900;
+}
+
+.meter-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8vh;
+    padding-bottom: 0.6vh;
+    border-bottom: 1px solid rgba(245, 196, 0, 0.35);
+}
+
+.meter-label {
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    font-size: 1.4vh;
+}
+
+.meter-status {
+    font-size: 1.1vh;
+    font-weight: 700;
+    padding: 0.2vh 0.6vh;
+    border-radius: 3px;
+}
+
+.meter-status.on {
+    color: #0d0d0d;
+    background: #f5c400;
+}
+
+.meter-status.off {
+    color: #f5c400;
+    background: rgba(245, 196, 0, 0.15);
+}
+
+.meter-display {
+    text-align: center;
+    padding: 1vh 0;
+    margin-bottom: 0.8vh;
+    background: #000;
+    border-radius: 4px;
+    border: 1px solid rgba(245, 196, 0, 0.25);
+}
+
+.meter-fare {
+    font-size: 3.2vh;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 0 8px rgba(245, 196, 0, 0.5);
+}
+
+.meter-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4vh;
+}
+
+.meter-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.2vh;
+    color: #e8d56a;
+}
+
+.meter-row.small {
+    font-size: 1vh;
+    color: #a89850;
+}
+
+.meter-hint {
+    margin-top: 0.8vh;
+    font-size: 0.95vh;
+    color: #7a7030;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.meter.passenger .meter-hint,
+.meter.passenger .driver-only {
+    display: none;
+}
+
+.meter-pending {
+    font-size: 1vh;
+    color: #ff9f43;
+    text-align: center;
+    margin-bottom: 0.6vh;
+    animation: blink 1.2s infinite;
+}
+
+.accept-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 42vh;
+    background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+    border: 3px solid #f5c400;
+    border-radius: 10px;
+    padding: 2.5vh;
+    color: #fff;
+    text-align: center;
+    z-index: 1000;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+}
+
+.accept-box h2 {
+    color: #f5c400;
+    font-size: 2vh;
+    margin-bottom: 1.2vh;
+}
+
+.accept-info {
+    font-size: 1.4vh;
+    color: #e8d56a;
+    margin-bottom: 1vh;
+    line-height: 1.5;
+}
+
+.accept-hint {
+    font-size: 1.2vh;
+    color: #b0b8c4;
+    margin-bottom: 1.5vh;
+}
+
+.accept-key {
+    display: inline-block;
+    background: #f5c400;
+    color: #0d0d0d;
+    font-weight: 700;
+    font-size: 2.5vh;
+    padding: 0.8vh 2vh;
+    border-radius: 6px;
+    min-width: 5vh;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+}
+
+.rate-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 32vh;
+    background: linear-gradient(180deg, #1e1e1e 0%, #101010 100%);
+    border: 2px solid #f5c400;
+    border-radius: 10px;
+    padding: 2vh;
+    color: #fff;
+    z-index: 1100;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.75);
+}
+
+.rate-box h2 {
+    color: #f5c400;
+    font-size: 1.8vh;
+    text-align: center;
+    margin-bottom: 0.6vh;
+}
+
+.rate-subtitle {
+    font-size: 1.1vh;
+    color: #a89850;
+    text-align: center;
+    margin-bottom: 1.4vh;
+}
+
+.rate-input-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5vh;
+    margin-bottom: 1vh;
+    background: #000;
+    border: 1px solid rgba(245, 196, 0, 0.35);
+    border-radius: 6px;
+    padding: 0.8vh 1vh;
+}
+
+.rate-currency,
+.rate-unit {
+    color: #f5c400;
+    font-size: 1.6vh;
+    font-weight: 700;
+}
+
+.rate-input {
+    width: 8vh;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 2.2vh;
+    font-weight: 700;
+    text-align: center;
+    font-family: inherit;
+}
+
+.rate-input::-webkit-outer-spin-button,
+.rate-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.rate-error {
+    color: #ff6b6b;
+    font-size: 1vh;
+    text-align: center;
+    margin-bottom: 0.8vh;
+}
+
+.rate-buttons {
+    display: flex;
+    gap: 0.8vh;
+}
+
+.rate-btn {
+    flex: 1;
+    border: none;
+    border-radius: 5px;
+    padding: 0.9vh;
+    font-size: 1.2vh;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.rate-btn.confirm {
+    background: #f5c400;
+    color: #111;
+}
+
+.rate-btn.confirm:hover {
+    background: #ffd633;
+}
+
+.rate-btn.cancel {
+    background: #333;
+    color: #ccc;
+}
+
+.rate-btn.cancel:hover {
+    background: #444;
+}
+
+#meterEstimate {
+    color: #fff;
+    font-weight: 700;
+}
+
+.tip-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 38vh;
+    background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+    border: 3px solid #f5c400;
+    border-radius: 10px;
+    padding: 2vh;
+    color: #fff;
+    text-align: center;
+    z-index: 1200;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.85);
+}
+
+.tip-box h2 {
+    color: #f5c400;
+    font-size: 2vh;
+    margin-bottom: 1vh;
+}
+
+.tip-info {
+    font-size: 1.3vh;
+    color: #e8d56a;
+    margin-bottom: 1.4vh;
+    line-height: 1.5;
+}
+
+.tip-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6vh;
+    margin-bottom: 1vh;
+}
+
+.tip-btn {
+    border: none;
+    border-radius: 5px;
+    padding: 0.9vh;
+    font-size: 1.2vh;
+    font-weight: 600;
+    cursor: pointer;
+    background: #f5c400;
+    color: #111;
+    font-family: inherit;
+}
+
+.tip-btn:hover {
+    background: #ffd633;
+}
+
+.tip-skip {
+    border: none;
+    border-radius: 5px;
+    padding: 0.7vh 1.2vh;
+    font-size: 1.1vh;
+    cursor: pointer;
+    background: #333;
+    color: #ccc;
+    font-family: inherit;
+}
+
+.tip-skip:hover {
+    background: #444;
+}

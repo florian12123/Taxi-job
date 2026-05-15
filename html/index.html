@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taxameter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="rateBox" class="rate-box hidden">
+        <h2 id="rateTitle">Preis pro Kilometer</h2>
+        <p id="rateSubtitle" class="rate-subtitle"></p>
+        <div class="rate-input-wrap">
+            <span class="rate-currency">$</span>
+            <input id="rateInput" class="rate-input" type="number" min="5" max="50" step="0.5" />
+            <span class="rate-unit">/ km</span>
+        </div>
+        <p id="rateError" class="rate-error hidden"></p>
+        <div class="rate-buttons">
+            <button id="rateCancel" type="button" class="rate-btn cancel">Abbrechen</button>
+            <button id="rateConfirm" type="button" class="rate-btn confirm">Starten</button>
+        </div>
+    </div>
+
+    <div id="acceptBox" class="accept-box hidden">
+        <h2 id="acceptTitle">Taxitarif bestätigen</h2>
+        <p id="acceptInfo" class="accept-info"></p>
+        <p id="acceptHint" class="accept-hint"></p>
+        <div class="accept-key" id="acceptKey">Y</div>
+    </div>
+
+    <div id="tipBox" class="tip-box hidden">
+        <h2 id="tipTitle">Trinkgeld</h2>
+        <p id="tipInfo" class="tip-info"></p>
+        <div id="tipButtons" class="tip-buttons"></div>
+        <button id="tipSkip" type="button" class="tip-skip">Kein Trinkgeld</button>
+    </div>
+
+    <div id="meter" class="meter hidden">
+        <div class="meter-top">
+            <span class="meter-label">TAXI</span>
+            <span id="meterStatus" class="meter-status on">AN</span>
+        </div>
+        <p id="meterPending" class="meter-pending hidden">Passagier wartet auf Bestätigung</p>
+        <div class="meter-display">
+            <span id="meterFare" class="meter-fare">$0.00</span>
+        </div>
+        <div class="meter-details">
+            <div class="meter-row">
+                <span>Strecke</span>
+                <span id="meterDistance">0.00 km</span>
+            </div>
+            <div class="meter-row">
+                <span>Status</span>
+                <span id="meterDriveStatus">Steht</span>
+            </div>
+            <div class="meter-row small">
+                <span>Grundtarif</span>
+                <span id="meterBase">$5</span>
+            </div>
+            <div class="meter-row small">
+                <span>pro km</span>
+                <span id="meterKmRate">$12</span>
+            </div>
+            <div id="meterEstimateRow" class="meter-row small hidden">
+                <span>Vorauss. Ende</span>
+                <span id="meterEstimate">$0.00</span>
+            </div>
+        </div>
+        <p id="meterHint" class="meter-hint driver-only">/taxirate · /taxireset · /taxibill</p>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
