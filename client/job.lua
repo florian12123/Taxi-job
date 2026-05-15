@@ -35,15 +35,15 @@ end
 
 local function openCloakroom()
     local elements = {
-        { unselectable = true, icon = 'fas fa-shirt', title = Config.Locales.menu_title },
-        { icon = 'fas fa-shirt', title = Config.Locales.wear_civilian, value = 'civilian' },
-        { icon = 'fas fa-shirt', title = Config.Locales.wear_work, value = 'work' },
+        { unselectable = true, icon = 'fas fa-shirt', title = L('menu_title') },
+        { icon = 'fas fa-shirt', title = L('wear_civilian'), value = 'civilian' },
+        { icon = 'fas fa-shirt', title = L('wear_work'), value = 'work' },
     }
 
     TaxiOpenMenu(elements, function(element)
         if element.value == 'civilian' then
             if GetResourceState('esx_skin') ~= 'started' then
-                notify('esx_skin wird benötigt.', 'error')
+                notify(L('need_esx_skin'), 'error')
                 return
             end
             ESX.TriggerServerCallback('esx_skin:getPlayerSkin', function(skin)
@@ -51,7 +51,7 @@ local function openCloakroom()
             end)
         elseif element.value == 'work' then
             if GetResourceState('esx_skin') ~= 'started' then
-                notify('esx_skin wird benötigt.', 'error')
+                notify(L('need_esx_skin'), 'error')
                 return
             end
             ESX.TriggerServerCallback('esx_skin:getPlayerSkin', function(skin, jobSkin)
@@ -67,7 +67,7 @@ end
 
 local function openVehicleSpawner()
     local elements = {
-        { unselectable = true, icon = 'fas fa-car', title = Config.Locales.menu_title },
+        { unselectable = true, icon = 'fas fa-car', title = L('menu_title') },
     }
 
     for i = 1, #Config.AllowedVehicles do
@@ -86,12 +86,12 @@ local function openVehicleSpawner()
 
         local spawn = Config.Zones.VehicleSpawnPoint
         if not ESX.Game.IsSpawnPointClear(vector3(spawn.Pos.x, spawn.Pos.y, spawn.Pos.z), 5.0) then
-            notify(Config.Locales.spawnpoint_blocked, 'error')
+            notify(L('spawnpoint_blocked'), 'error')
             return
         end
 
         ESX.TriggerServerCallback('taxijob:spawnVehicle', function()
-            notify(Config.Locales.vehicle_spawned:format(element.title or element.value), 'success')
+            notify(L('vehicle_spawned', element.title or element.value), 'success')
         end, element.value, { plate = 'TAXI' .. math.random(100, 999) })
     end)
 end
@@ -103,11 +103,10 @@ local function deleteJobVehicle()
     if vehicle and DoesEntityExist(vehicle) then
         if IsInAuthorizedVehicle() then
             ESX.Game.DeleteVehicle(vehicle)
-            TriggerEvent('taxijob:stopNpcJob')
             TriggerEvent('taxijob:resetTaximeter')
-            notify(Config.Locales.vehicle_stored_meter_off, 'info')
+            notify(L('vehicle_stored_meter_off'), 'info')
         else
-            notify(Config.Locales.only_taxi, 'error')
+            notify(L('only_taxi'), 'error')
         end
     end
 end
@@ -115,11 +114,11 @@ end
 local function openTripLog()
     ESX.TriggerServerCallback('taxijob:getTripLog', function(trips)
         local elements = {
-            { unselectable = true, icon = 'fas fa-book', title = Config.Locales.logbook_title },
+            { unselectable = true, icon = 'fas fa-book', title = L('logbook_title') },
         }
 
         if not trips or #trips == 0 then
-            elements[#elements + 1] = { unselectable = true, title = Config.Locales.logbook_empty }
+            elements[#elements + 1] = { unselectable = true, title = L('logbook_empty') }
         else
             for i = 1, #trips do
                 local trip = trips[i]
@@ -131,7 +130,7 @@ local function openTripLog()
                 elements[#elements + 1] = {
                     unselectable = true,
                     icon = 'fas fa-route',
-                    title = Config.Locales.logbook_entry:format(
+                    title = L('logbook_entry', 
                         dateLabel,
                         trip.distance_km or 0,
                         trip.total or trip.fare or 0,
@@ -151,25 +150,12 @@ local function openMobileMenu()
     end
 
     local elements = {
-        { unselectable = true, icon = 'fas fa-taxi', title = Config.Locales.menu_title },
-        { icon = 'fas fa-dollar-sign', title = Config.Locales.rate_confirm_change, value = 'setrate' },
+        { unselectable = true, icon = 'fas fa-taxi', title = L('menu_title') },
+        { icon = 'fas fa-dollar-sign', title = L('rate_confirm_change'), value = 'setrate' },
     }
 
     if Config.TripLog and Config.TripLog.enabled ~= false then
-        elements[#elements + 1] = { icon = 'fas fa-book', title = Config.Locales.logbook_menu, value = 'logbook' }
-    end
-
-    local playerCount = #GetActivePlayers()
-    if Config.NpcMissions.enabled and playerCount < Config.NpcMissions.maxPlayersOnline then
-        local npcActive = false
-        pcall(function()
-            npcActive = exports[GetCurrentResourceName()]:IsNpcJobActive()
-        end)
-        if npcActive then
-            elements[#elements + 1] = { icon = 'fas fa-ban', title = Config.Locales.npc_stop, value = 'npc_stop' }
-        else
-            elements[#elements + 1] = { icon = 'fas fa-user', title = Config.Locales.npc_start, value = 'npc_start' }
-        end
+        elements[#elements + 1] = { icon = 'fas fa-book', title = L('logbook_menu'), value = 'logbook' }
     end
 
     TaxiOpenMenu(elements, function(element)
@@ -177,10 +163,6 @@ local function openMobileMenu()
             TriggerEvent('taxijob:openRateWindow')
         elseif element.value == 'logbook' then
             openTripLog()
-        elseif element.value == 'npc_start' then
-            TriggerEvent('taxijob:startNpcJob')
-        elseif element.value == 'npc_stop' then
-            TriggerEvent('taxijob:stopNpcJob')
         end
     end)
 end
@@ -188,7 +170,7 @@ end
 AddEventHandler('taxijob:hasEnteredMarker', function(zone)
     if zone == 'VehicleSpawner' then
         currentAction = 'vehicle_spawner'
-        currentActionMsg = Config.Locales.spawner_prompt
+        currentActionMsg = L('spawner_prompt')
         currentActionData = {}
     elseif zone == 'VehicleDeleter' then
         local playerPed = PlayerPedId()
@@ -196,12 +178,12 @@ AddEventHandler('taxijob:hasEnteredMarker', function(zone)
 
         if IsPedInAnyVehicle(playerPed, false) and GetPedInVehicleSeat(vehicle, -1) == playerPed then
             currentAction = 'delete_vehicle'
-            currentActionMsg = Config.Locales.store_veh
+            currentActionMsg = L('store_veh')
             currentActionData = { vehicle = vehicle }
         end
     elseif zone == 'Cloakroom' then
         currentAction = 'cloakroom'
-        currentActionMsg = Config.Locales.cloakroom_prompt
+        currentActionMsg = L('cloakroom_prompt')
         currentActionData = {}
     end
 end)
@@ -227,7 +209,7 @@ RegisterNetEvent('taxijob:openRateWindow', function()
     if hasTaxiJob() and IsPedInAnyVehicle(PlayerPedId(), false) and GetPedInVehicleSeat(GetVehiclePedIsIn(PlayerPedId(), false), -1) == PlayerPedId() then
         ExecuteCommand(Config.Command.setrate)
     else
-        notify(Config.Locales.must_in_taxi, 'error')
+        notify(L('must_in_taxi'), 'error')
     end
 end)
 
@@ -239,7 +221,7 @@ CreateThread(function()
     SetBlipColour(blip, 5)
     SetBlipAsShortRange(blip, true)
     BeginTextCommandSetBlipName('STRING')
-    AddTextComponentSubstringPlayerName(Config.Locales.blip_taxi)
+    AddTextComponentSubstringPlayerName(L('blip_taxi'))
     EndTextCommandSetBlipName(blip)
 end)
 
@@ -321,4 +303,4 @@ RegisterCommand('taxijobmenu', function()
     end
 end, false)
 
-RegisterKeyMapping('taxijobmenu', 'Taxi Job Menü', 'keyboard', Config.KeyMapping.menu or 'F6')
+RegisterKeyMapping('taxijobmenu', L('keymap_menu'), 'keyboard', Config.KeyMapping.menu or 'F6')
