@@ -30,6 +30,7 @@ const tipButtons = document.getElementById('tipButtons');
 const tipSkip = document.getElementById('tipSkip');
 
 let rateLimits = { min: 5, max: 50, defaultRate: 12 };
+let rateErrorTemplate = '';
 
 function postNui(name, data) {
     fetch(`https://${GetParentResourceName()}/${name}`, {
@@ -44,10 +45,30 @@ function formatMoney(value) {
     return '$' + num.toFixed(2);
 }
 
+function applyRateErrorTemplate(template, min, max) {
+    if (!template) {
+        return `Enter $${min} – $${max}.`;
+    }
+
+    let index = 0;
+    const values = [`$${min}`, `$${max}`];
+
+    return template.replace(/%s/g, () => values[index++] || '');
+}
+
+function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el && text) {
+        el.textContent = text;
+    }
+}
+
 function updateEstimate(extra) {
     if (!meterEstimateRow || !meterEstimate) {
         return;
     }
+
+    setText('meterEstimateLabel', extra?.estimateLabel);
 
     const estimate = Number(extra?.estimatedFinal);
     if (extra?.hasEstimate && !Number.isNaN(estimate) && estimate > 0) {
@@ -70,16 +91,29 @@ function updateMeter(payload, visible, isDriver, extra) {
     meter.classList.remove('hidden');
     meter.classList.toggle('passenger', !isDriver);
 
+    const ui = info;
+
+    setText('meterLabelTaxi', ui.labelTaxi);
+    setText('meterLabelDistance', ui.labelDistance);
+    setText('meterLabelStatus', ui.labelStatus);
+    setText('meterLabelBase', ui.labelBase);
+    setText('meterLabelPerKm', ui.labelPerKm);
+
+    const hintEl = document.getElementById('meterHint');
+    if (hintEl && ui.meterHint) {
+        hintEl.textContent = ui.meterHint;
+    }
+
     if (data.meterStarted) {
-        meterStatus.textContent = 'AN';
+        meterStatus.textContent = ui.statusOn || 'ON';
         meterStatus.classList.add('on');
         meterStatus.classList.remove('off');
     } else if (isDriver) {
-        meterStatus.textContent = 'BEREIT';
+        meterStatus.textContent = ui.statusReady || 'READY';
         meterStatus.classList.remove('on');
         meterStatus.classList.add('off');
     } else {
-        meterStatus.textContent = 'AN';
+        meterStatus.textContent = ui.statusOn || 'ON';
         meterStatus.classList.add('on');
         meterStatus.classList.remove('off');
     }
@@ -87,7 +121,7 @@ function updateMeter(payload, visible, isDriver, extra) {
     meterFare.textContent = formatMoney(data.fare);
     meterDistance.textContent = (Number(data.distanceKm) || 0).toFixed(2) + ' km';
     if (meterDriveStatus) {
-        meterDriveStatus.textContent = data.isDriving ? 'Fährt' : 'Steht';
+        meterDriveStatus.textContent = data.isDriving ? (ui.driving || 'Driving') : (ui.stopped || 'Stopped');
         meterDriveStatus.style.color = data.isDriving ? '#7dffb2' : '#ff9f43';
     }
     meterBase.textContent = formatMoney(data.baseFare);
@@ -98,13 +132,13 @@ function updateMeter(payload, visible, isDriver, extra) {
 
     if (meterPending) {
         if (waiting && !pending) {
-            meterPending.textContent = 'Warte auf Passagier';
+            meterPending.textContent = ui.pendingWaiting || 'Waiting for passenger';
             meterPending.classList.remove('hidden');
         } else if (pending) {
-            meterPending.textContent = 'Passagier muss zustimmen';
+            meterPending.textContent = ui.pendingAccept || 'Passenger must accept';
             meterPending.classList.remove('hidden');
         } else if (data.meterStarted) {
-            meterPending.textContent = 'Fahrt läuft';
+            meterPending.textContent = ui.tripActive || 'Trip in progress';
             meterPending.classList.remove('hidden');
             meterPending.style.color = '#7dffb2';
         } else {
@@ -149,7 +183,9 @@ function showRate(data) {
     rateInput.min = rateLimits.min;
     rateInput.max = rateLimits.max;
     rateInput.value = rateLimits.defaultRate;
-    rateConfirm.textContent = data.confirmLabel || 'Starten';
+    rateConfirm.textContent = data.confirmLabel || 'Start';
+    rateCancel.textContent = data.cancelLabel || 'Cancel';
+    rateErrorTemplate = data.rateErrorTemplate || '';
 
     showRateError('');
     rateBox.classList.remove('hidden');
@@ -171,7 +207,7 @@ function submitRate() {
     const value = Number(rateInput.value);
 
     if (!value || value < rateLimits.min || value > rateLimits.max) {
-        showRateError(`Bitte $${rateLimits.min} – $${rateLimits.max} eingeben.`);
+        showRateError(applyRateErrorTemplate(rateErrorTemplate, rateLimits.min, rateLimits.max));
         return;
     }
 

@@ -10,6 +10,7 @@ local ratePrompted = false
 local currentDriverId = nil
 local passengerAgreed = false
 local waitingAccept = false
+local rideBilled = false
 
 local function notify(msg, nType)
     Config.Functions.notify(msg, nType)
@@ -72,12 +73,7 @@ local function buildEstimateExtra(payload)
         return { hasEstimate = false }
     end
 
-    local waypoint = getWaypointCoords()
-    local dest = waypoint
-
-    if not dest and payload.destination and payload.destination.x then
-        dest = payload.destination
-    end
+    local dest = getWaypointCoords()
 
     if not dest or not dest.x then
         return { hasEstimate = false }
@@ -110,11 +106,35 @@ local function buildEstimateExtra(payload)
     }
 end
 
+local function getUiLocaleExtra()
+    return {
+        pendingWaiting = L('meter_ui_wait_passenger'),
+        pendingAccept = L('meter_ui_must_accept'),
+        tripActive = L('meter_ui_trip_active'),
+        driving = L('meter_ui_driving'),
+        stopped = L('meter_ui_stopped'),
+        statusOn = L('meter_ui_status_on'),
+        statusReady = L('meter_ui_status_ready'),
+        estimateLabel = L('meter_estimated_end'),
+        labelTaxi = L('meter_ui_taxi'),
+        labelDistance = L('meter_ui_distance'),
+        labelStatus = L('meter_ui_status'),
+        labelBase = L('meter_ui_base'),
+        labelPerKm = L('meter_ui_per_km'),
+        meterHint = L('meter_ui_commands'),
+    }
+end
+
 local function sendDisplay(payload, visible, extra)
     local merged = extra or {}
     local estimateExtra = buildEstimateExtra(payload)
+    local uiLocale = getUiLocaleExtra()
 
     for key, value in pairs(estimateExtra) do
+        merged[key] = value
+    end
+
+    for key, value in pairs(uiLocale) do
         merged[key] = value
     end
 
@@ -195,8 +215,8 @@ local function openRateWindow(currentRate)
 
     SendNUIMessage({
         action = 'showRate',
-        title = Config.Locales.rate_dialog_title,
-        subtitle = Config.Locales.rate_dialog_default:format(
+        title = L('rate_dialog_title'),
+        subtitle = L('rate_dialog_default', 
             Config.DefaultPricePerKm,
             Config.MinPricePerKm,
             Config.MaxPricePerKm
@@ -204,7 +224,9 @@ local function openRateWindow(currentRate)
         min = Config.MinPricePerKm,
         max = Config.MaxPricePerKm,
         defaultRate = currentRate or Config.DefaultPricePerKm,
-        confirmLabel = hasSession and (Config.Locales.rate_confirm_change or 'Preis ändern') or Config.Locales.rate_confirm,
+        confirmLabel = hasSession and L('rate_confirm_change') or L('rate_confirm'),
+        cancelLabel = L('rate_cancel'),
+        rateErrorTemplate = L('rate_error_invalid'),
     })
 end
 
@@ -213,7 +235,7 @@ RegisterNUICallback('confirmRate', function(data, cb)
 
     local rate = tonumber(data and data.rate)
     if not rate or rate < Config.MinPricePerKm or rate > Config.MaxPricePerKm then
-        notify(Config.Locales.rate_invalid:format(Config.MinPricePerKm, Config.MaxPricePerKm), 'error')
+        notify(L('rate_invalid', Config.MinPricePerKm, Config.MaxPricePerKm), 'error')
         cb('ok')
         return
     end
@@ -270,9 +292,9 @@ RegisterNetEvent('taximeter:showTip', function(data)
 
     SendNUIMessage({
         action = 'showTip',
-        title = Config.Locales.tip_title,
-        info = Config.Locales.tip_info:format(data.fare, data.driverName or 'Fahrer'),
-        skipLabel = Config.Locales.tip_skip,
+        title = L('tip_title'),
+        info = L('tip_info', data.fare, data.driverName or L('driver_default')),
+        skipLabel = L('tip_skip'),
         fare = data.fare,
         percents = data.percents or Config.Tips.percents,
         driverId = data.driverId,
@@ -347,17 +369,17 @@ local function showAcceptPrompt(payload, driverId)
     SendNUIMessage({
         action = 'showAccept',
         acceptKey = Config.KeyMapping.accept or 'Y',
-        title = Config.Locales.passenger_accept_title,
-        info = Config.Locales.passenger_accept_info:format(
+        title = L('passenger_accept_title'),
+        info = L('passenger_accept_info', 
             payload.baseFare,
             payload.pricePerKm
         ),
-        hint = Config.Locales.passenger_accept_hint:format(Config.KeyMapping.accept or 'Y'),
+        hint = L('passenger_accept_hint', Config.KeyMapping.accept or 'Y'),
     })
 end
 
 local function acceptTariff()
-    if not waitingAccept or not currentDriverId then
+    if rideBilled or not waitingAccept or not currentDriverId then
         return
     end
 
@@ -413,7 +435,15 @@ RegisterNetEvent('taximeter:syncDisplay', function(payload, driverId)
 
     currentDriverId = driverId
 
-    if payload.needsAccept and not passengerAgreed then
+    if payload.rideBilled then
+        rideBilled = true
+        waitingAccept = false
+        SendNUIMessage({ action = 'hideAccept' })
+        sendDisplay({}, false)
+        return
+    end
+
+    if payload.needsAccept and not passengerAgreed and not rideBilled then
         showAcceptPrompt(payload, driverId)
         return
     end
@@ -430,10 +460,21 @@ RegisterNetEvent('taximeter:requestAccept', function(payload, driverId)
         return
     end
 
+    rideBilled = false
     showAcceptPrompt(payload, driverId)
 end)
 
+RegisterNetEvent('taximeter:rideBilled', function()
+    rideBilled = true
+    waitingAccept = false
+    passengerAgreed = false
+    SendNUIMessage({ action = 'hideAccept' })
+    sendDisplay({}, false)
+    notify(L('ride_billed_passenger'), 'info')
+end)
+
 RegisterNetEvent('taximeter:acceptConfirmed', function(payload)
+    rideBilled = false
     passengerAgreed = true
     waitingAccept = false
     meterCounting = payload and payload.meterStarted or false
@@ -472,6 +513,7 @@ local function resetTaximeterCompletely()
     currentDriverId = nil
     passengerAgreed = false
     waitingAccept = false
+    rideBilled = false
     TriggerServerEvent('taximeter:stop')
 end
 
@@ -486,7 +528,7 @@ exports('ResetTaximeter', resetTaximeterCompletely)
 RegisterCommand(Config.Command.setrate, function()
     refreshVehicleState()
     if not canUseMeter then
-        notify(Config.Locales.not_in_vehicle, 'error')
+        notify(L('not_in_vehicle'), 'error')
         return
     end
 
@@ -496,12 +538,7 @@ end, false)
 RegisterCommand(Config.Command.reset, function()
     refreshVehicleState()
     if not canUseMeter or not hasSession then
-        notify(Config.Locales.not_in_vehicle, 'error')
-        return
-    end
-
-    if not meterCounting then
-        notify(Config.Locales.passenger_must_accept, 'error')
+        notify(L('not_in_vehicle'), 'error')
         return
     end
 
@@ -511,13 +548,13 @@ end, false)
 RegisterCommand(Config.Command.bill, function()
     refreshVehicleState()
     if not canUseMeter or not hasSession then
-        notify(Config.Locales.not_in_vehicle, 'error')
+        notify(L('not_in_vehicle'), 'error')
         return
     end
 
     local passengerId = getPassengerServerId()
     if not passengerId then
-        notify(Config.Locales.no_passenger, 'error')
+        notify(L('no_passenger'), 'error')
         return
     end
 
@@ -529,19 +566,19 @@ RegisterCommand(Config.Command.accept, function()
 end, false)
 
 if Config.KeyMapping.setrate and Config.KeyMapping.setrate ~= '' then
-    RegisterKeyMapping(Config.Command.setrate, 'Taxi Preis/km setzen', 'keyboard', Config.KeyMapping.setrate)
+    RegisterKeyMapping(Config.Command.setrate, L('keymap_setrate'), 'keyboard', Config.KeyMapping.setrate)
 end
 
 if Config.KeyMapping.reset and Config.KeyMapping.reset ~= '' then
-    RegisterKeyMapping(Config.Command.reset, 'Taxameter Reset', 'keyboard', Config.KeyMapping.reset)
+    RegisterKeyMapping(Config.Command.reset, L('keymap_reset'), 'keyboard', Config.KeyMapping.reset)
 end
 
 if Config.KeyMapping.bill and Config.KeyMapping.bill ~= '' then
-    RegisterKeyMapping(Config.Command.bill, 'Taxifahrt abrechnen', 'keyboard', Config.KeyMapping.bill)
+    RegisterKeyMapping(Config.Command.bill, L('keymap_bill'), 'keyboard', Config.KeyMapping.bill)
 end
 
 if Config.KeyMapping.accept and Config.KeyMapping.accept ~= '' then
-    RegisterKeyMapping(Config.Command.accept, 'Taxitarif akzeptieren', 'keyboard', Config.KeyMapping.accept)
+    RegisterKeyMapping(Config.Command.accept, L('keymap_accept'), 'keyboard', Config.KeyMapping.accept)
 end
 
 RegisterNetEvent('esx:playerLoaded', function(xPlayer)
@@ -593,6 +630,7 @@ CreateThread(function()
                 currentDriverId = driverId
                 passengerAgreed = false
                 waitingAccept = false
+                rideBilled = false
                 TriggerServerEvent('taximeter:passengerEntered', driverId)
             elseif not driverId and lastDriverId then
                 TriggerServerEvent('taximeter:passengerLeft', lastDriverId)

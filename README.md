@@ -1,6 +1,6 @@
 # TaxiJob
 
-ESX Legacy Taxi-Job mit Taxameter, Passagier-Zustimmung, Trinkgeld, Fahrtenbuch und NPC-Fahrten.
+ESX Legacy Taxi-Job mit Taxameter, Passagier-Zustimmung, Trinkgeld und Fahrtenbuch.
 
 ## Anforderungen
 
@@ -35,7 +35,18 @@ stop esx_taxijob
 ensure TaxiJob
 ```
 
-5. `config.lua` anpassen (Job-Name, Zonen, Preise).
+5. `config.lua` anpassen (Job-Name, Zonen, Preise, Sprache).
+
+## Sprache / Locale
+
+In `config.lua`:
+
+```lua
+Config.Locale = 'de' -- oder 'en'
+```
+
+Übersetzungen liegen in `locales/de.lua` und `locales/en.lua`.  
+Neue Texte: Key in beiden Dateien eintragen, im Code mit `L('key')` oder `L('key', arg1, arg2)` nutzen.
 
 ## Befehle
 

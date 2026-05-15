@@ -3,19 +3,21 @@ game 'gta5'
 lua54 'yes'
 
 author 'AngelV'
-description 'ESX Legacy Taxi-Job – Taxameter, Garage, NPC-Fahrten, Trinkgeld & Fahrtenbuch'
-version '2.2.0'
+description 'ESX Legacy Taxi-Job – Taxameter, Garage, Trinkgeld & Fahrtenbuch'
+version '2.3.1'
 
 shared_scripts {
     '@es_extended/imports.lua',
     'config.lua',
+    'shared/locale.lua',
+    'locales/de.lua',
+    'locales/en.lua',
     'shared/notify.lua',
 }
 
 client_scripts {
     'client/menu.lua',
     'client/job.lua',
-    'client/npc.lua',
     'client/main.lua',
 }
 

@@ -117,7 +117,6 @@ local function calculateFare(session)
 end
 
 local function buildPayload(session)
-    local dest = session.destination
     return {
         active = session.active,
         meterStarted = session.meterStarted or false,
@@ -129,8 +128,6 @@ local function buildPayload(session)
         acceptKey = Config.KeyMapping.accept or 'Y',
         pendingPassengers = session.pendingPassengers or 0,
         agreedCount = countAgreedPassengers(session),
-        destination = dest and { x = dest.x, y = dest.y, z = dest.z } or nil,
-        destinationLabel = session.destinationLabel,
     }
 end
 
@@ -179,6 +176,16 @@ local function chargePlayer(xTarget, amount, reason)
     return true
 end
 
+local function isPassengerBilled(session, passengerSrc)
+    return session and session.billedPassengers and session.billedPassengers[passengerSrc] == true
+end
+
+local function clearPassengerBilling(session, passengerSrc)
+    if session and session.billedPassengers then
+        session.billedPassengers[passengerSrc] = nil
+    end
+end
+
 local function syncToVehicleOccupants(driverSrc, payload)
     local driverPed = GetPlayerPed(driverSrc)
     if not driverPed or driverPed == 0 then
@@ -198,9 +205,15 @@ local function syncToVehicleOccupants(driverSrc, payload)
             local targetPed = GetPlayerPed(targetSrc)
             if targetPed and targetPed ~= 0 and GetVehiclePedIsIn(targetPed, false) == vehicle then
                 local agreed = session and session.agreedPassengers and session.agreedPassengers[targetSrc]
-                local syncPayload = payload
+                local billed = session and isPassengerBilled(session, targetSrc)
+
+                local syncPayload = {}
+                for key, value in pairs(payload) do
+                    syncPayload[key] = value
+                end
                 syncPayload.passengerAgreed = agreed or false
-                syncPayload.needsAccept = session and session.active and not agreed
+                syncPayload.needsAccept = session and session.active and not agreed and not billed
+                syncPayload.rideBilled = billed or false
                 TriggerClientEvent('taximeter:syncDisplay', targetSrc, syncPayload, driverSrc)
             end
         end
@@ -228,6 +241,10 @@ local function requestPassengerAccept(driverSrc, passengerSrc)
         return
     end
 
+    if isPassengerBilled(session, passengerSrc) then
+        return
+    end
+
     local payload = buildPayload(session)
     payload.needsAccept = true
     payload.passengerAgreed = false
@@ -247,19 +264,20 @@ local function requestAllPassengersAccept(driverSrc)
 
     for i = 1, #passengers do
         local passengerSrc = passengers[i]
-        if not session.agreedPassengers[passengerSrc] then
+        if not session.agreedPassengers[passengerSrc] and not isPassengerBilled(session, passengerSrc) then
             session.pendingPassengers = session.pendingPassengers + 1
             requestPassengerAccept(driverSrc, passengerSrc)
         end
     end
 
     if session.pendingPassengers > 0 then
-        Config.Functions.serverNotify(driverSrc, Config.Locales.driver_passenger_waiting, 'info')
+        Config.Functions.serverNotify(driverSrc, L('driver_passenger_waiting'), 'info')
     end
 end
 
 local function clearAgreements(session)
     session.agreedPassengers = {}
+    session.billedPassengers = {}
     session.meterStarted = false
     session.distanceMeters = 0.0
     session.lastPos = nil
@@ -277,11 +295,12 @@ local function createWaitingSession(src, pricePerKm)
         isDriving = false,
         pricePerKm = clampRate(pricePerKm),
         agreedPassengers = {},
+        billedPassengers = {},
         pendingPassengers = 0,
     }
 
-    Config.Functions.serverNotify(src, Config.Locales.rate_set:format(sessions[src].pricePerKm), 'success')
-    Config.Functions.serverNotify(src, Config.Locales.waiting_passenger, 'info')
+    Config.Functions.serverNotify(src, L('rate_set', sessions[src].pricePerKm), 'success')
+    Config.Functions.serverNotify(src, L('waiting_passenger'), 'info')
 
     pushSessionState(src)
 
@@ -303,7 +322,7 @@ local function startMeterForDriver(driverSrc)
     session.lastPos = nil
     session.isDriving = false
 
-    Config.Functions.serverNotify(driverSrc, Config.Locales.meter_started, 'success')
+    Config.Functions.serverNotify(driverSrc, L('meter_started'), 'success')
 
     local payload = buildPayload(session)
     TriggerClientEvent('taximeter:meterStarted', driverSrc, payload)
@@ -315,13 +334,13 @@ RegisterNetEvent('taximeter:setRate', function(pricePerKm)
     local xPlayer = ESX.GetPlayerFromId(src)
 
     if not isTaxiJob(xPlayer) then
-        Config.Functions.serverNotify(src, Config.Locales.no_job, 'error')
+        Config.Functions.serverNotify(src, L('no_job'), 'error')
         return
     end
 
     local rate = tonumber(pricePerKm)
     if not rate or rate < Config.MinPricePerKm or rate > Config.MaxPricePerKm then
-        Config.Functions.serverNotify(src, Config.Locales.rate_invalid:format(Config.MinPricePerKm, Config.MaxPricePerKm), 'error')
+        Config.Functions.serverNotify(src, L('rate_invalid', Config.MinPricePerKm, Config.MaxPricePerKm), 'error')
         return
     end
 
@@ -336,13 +355,13 @@ RegisterNetEvent('taximeter:setRate', function(pricePerKm)
     session.pricePerKm = clampRate(rate)
     clearAgreements(session)
 
-    Config.Functions.serverNotify(src, Config.Locales.rate_set:format(session.pricePerKm), 'success')
+    Config.Functions.serverNotify(src, L('rate_set', session.pricePerKm), 'success')
 
     if wasRunning or #getPassengersInVehicle(src) > 0 then
-        Config.Functions.serverNotify(src, Config.Locales.rate_changed_reaccept, 'info')
+        Config.Functions.serverNotify(src, L('rate_changed_reaccept'), 'info')
         requestAllPassengersAccept(src)
     else
-        Config.Functions.serverNotify(src, Config.Locales.waiting_passenger, 'info')
+        Config.Functions.serverNotify(src, L('waiting_passenger'), 'info')
     end
 
     pushSessionState(src)
@@ -387,7 +406,7 @@ RegisterNetEvent('taximeter:reset', function()
     session.agreedPassengers = agreed
     session.meterStarted = wasStarted and hasAgreedPassenger(session)
 
-    Config.Functions.serverNotify(src, Config.Locales.meter_reset, 'info')
+    Config.Functions.serverNotify(src, L('meter_reset'), 'info')
     pushSessionState(src)
 end)
 
@@ -432,13 +451,18 @@ RegisterNetEvent('taximeter:passengerEntered', function(driverServerId)
     local session = getSession(driver)
 
     if not session or not session.active then
-        Config.Functions.serverNotify(src, Config.Locales.no_driver_rate, 'error')
+        Config.Functions.serverNotify(src, L('no_driver_rate'), 'error')
         TriggerClientEvent('taximeter:promptRate', driver)
         return
     end
 
-    requestPassengerAccept(driver, src)
-    Config.Functions.serverNotify(driver, Config.Locales.driver_passenger_waiting, 'info')
+    clearPassengerBilling(session, src)
+
+    if not session.agreedPassengers[src] and not isPassengerBilled(session, src) then
+        session.pendingPassengers = (session.pendingPassengers or 0) + 1
+        requestPassengerAccept(driver, src)
+        Config.Functions.serverNotify(driver, L('driver_passenger_waiting'), 'info')
+    end
 end)
 
 RegisterNetEvent('taximeter:passengerAgree', function(driverServerId)
@@ -447,7 +471,7 @@ RegisterNetEvent('taximeter:passengerAgree', function(driverServerId)
     local session = getSession(driver)
 
     if not session or not session.active then
-        Config.Functions.serverNotify(src, Config.Locales.not_in_taxi_passenger, 'error')
+        Config.Functions.serverNotify(src, L('not_in_taxi_passenger'), 'error')
         return
     end
 
@@ -460,20 +484,25 @@ RegisterNetEvent('taximeter:passengerAgree', function(driverServerId)
 
     local vehicle = GetVehiclePedIsIn(driverPed, false)
     if vehicle == 0 or GetVehiclePedIsIn(passengerPed, false) ~= vehicle then
-        Config.Functions.serverNotify(src, Config.Locales.not_in_taxi_passenger, 'error')
+        Config.Functions.serverNotify(src, L('not_in_taxi_passenger'), 'error')
+        return
+    end
+
+    if isPassengerBilled(session, src) then
+        Config.Functions.serverNotify(src, L('ride_already_billed'), 'info')
         return
     end
 
     if session.agreedPassengers[src] then
-        Config.Functions.serverNotify(src, Config.Locales.already_accepted, 'info')
+        Config.Functions.serverNotify(src, L('already_accepted'), 'info')
         return
     end
 
     session.agreedPassengers[src] = true
     session.pendingPassengers = math.max((session.pendingPassengers or 1) - 1, 0)
 
-    Config.Functions.serverNotify(src, Config.Locales.passenger_accepted, 'success')
-    Config.Functions.serverNotify(driver, Config.Locales.driver_passenger_accepted, 'success')
+    Config.Functions.serverNotify(src, L('passenger_accepted'), 'success')
+    Config.Functions.serverNotify(driver, L('driver_passenger_accepted'), 'success')
 
     if not session.meterStarted then
         startMeterForDriver(driver)
@@ -501,6 +530,8 @@ RegisterNetEvent('taximeter:passengerLeft', function(driverServerId)
         session.agreedPassengers[src] = nil
     end
 
+    clearPassengerBilling(session, src)
+
     if session.pendingPassengers and session.pendingPassengers > 0 then
         session.pendingPassengers = session.pendingPassengers - 1
     end
@@ -511,52 +542,7 @@ RegisterNetEvent('taximeter:passengerLeft', function(driverServerId)
         session.meterStarted = false
         session.distanceMeters = 0.0
         session.lastPos = nil
-        Config.Functions.serverNotify(driver, Config.Locales.meter_paused_no_passenger, 'info')
-    end
-
-    pushSessionState(driver)
-end)
-
-RegisterNetEvent('taximeter:updateWaypoint', function(driverServerId, coords, hasWaypoint)
-    if not Config.Map or Config.Map.enabled == false then
-        return
-    end
-
-    local src = source
-    local driver = tonumber(driverServerId)
-    local session = getSession(driver)
-
-    if not session or not session.active then
-        return
-    end
-
-    local driverPed = GetPlayerPed(driver)
-    local senderPed = GetPlayerPed(src)
-    if not driverPed or driverPed == 0 or not senderPed or senderPed == 0 then
-        return
-    end
-
-    local vehicle = GetVehiclePedIsIn(driverPed, false)
-    if vehicle == 0 or GetVehiclePedIsIn(senderPed, false) ~= vehicle then
-        return
-    end
-
-    local isDriverSender = src == driver
-    local isPassengerSender = not isDriverSender
-
-    if hasWaypoint and coords and coords.x and coords.y then
-        if isPassengerSender or not session.destinationFromPassenger then
-            session.destination = vector3(coords.x, coords.y, coords.z or 0.0)
-            session.destinationFromPassenger = isPassengerSender
-            session.destinationLabel = isPassengerSender and 'Passagier-Ziel' or 'Fahrer-Ziel'
-        end
-    elseif isPassengerSender and session.destinationFromPassenger then
-        session.destination = nil
-        session.destinationFromPassenger = false
-        session.destinationLabel = nil
-    elseif isDriverSender and not session.destinationFromPassenger then
-        session.destination = nil
-        session.destinationLabel = nil
+        Config.Functions.serverNotify(driver, L('meter_paused_no_passenger'), 'info')
     end
 
     pushSessionState(driver)
@@ -573,7 +559,7 @@ RegisterNetEvent('taximeter:giveTip', function(driverServerId, percent)
     local driver = tonumber(driverServerId)
 
     if not pending or pending.driver ~= driver or pending.expires < os.time() then
-        Config.Functions.serverNotify(src, Config.Locales.tip_expired, 'error')
+        Config.Functions.serverNotify(src, L('tip_expired'), 'error')
         pendingTips[src] = nil
         return
     end
@@ -588,7 +574,7 @@ RegisterNetEvent('taximeter:giveTip', function(driverServerId, percent)
     end
 
     if not allowed or percent <= 0 then
-        Config.Functions.serverNotify(src, Config.Locales.tip_invalid, 'error')
+        Config.Functions.serverNotify(src, L('tip_invalid'), 'error')
         pendingTips[src] = nil
         return
     end
@@ -608,7 +594,7 @@ RegisterNetEvent('taximeter:giveTip', function(driverServerId, percent)
     end
 
     if not chargePlayer(xPassenger, tipAmount, 'Taxi-Trinkgeld') then
-        Config.Functions.serverNotify(src, Config.Locales.tip_not_enough:format(tipAmount), 'error')
+        Config.Functions.serverNotify(src, L('tip_not_enough', tipAmount), 'error')
         return
     end
 
@@ -618,8 +604,8 @@ RegisterNetEvent('taximeter:giveTip', function(driverServerId, percent)
         UpdateTripTip(pending.tripId, tipAmount, pending.fare + tipAmount)
     end
 
-    Config.Functions.serverNotify(src, Config.Locales.tip_sent:format(tipAmount), 'success')
-    Config.Functions.serverNotify(driver, Config.Locales.tip_received:format(tipAmount), 'success')
+    Config.Functions.serverNotify(src, L('tip_sent', tipAmount), 'success')
+    Config.Functions.serverNotify(driver, L('tip_received', tipAmount), 'success')
 
     pendingTips[src] = nil
 end)
@@ -643,29 +629,29 @@ RegisterNetEvent('taximeter:billPassenger', function(targetServerId)
     end
 
     if not session or not session.active then
-        Config.Functions.serverNotify(src, Config.Locales.not_in_vehicle, 'error')
+        Config.Functions.serverNotify(src, L('not_in_vehicle'), 'error')
         return
     end
 
     if not session.meterStarted then
-        Config.Functions.serverNotify(src, Config.Locales.passenger_must_accept, 'error')
+        Config.Functions.serverNotify(src, L('passenger_must_accept'), 'error')
         return
     end
 
     local target = tonumber(targetServerId)
     if not target or target == src then
-        Config.Functions.serverNotify(src, Config.Locales.no_passenger, 'error')
+        Config.Functions.serverNotify(src, L('no_passenger'), 'error')
         return
     end
 
     if not session.agreedPassengers or not session.agreedPassengers[target] then
-        Config.Functions.serverNotify(src, Config.Locales.passenger_must_accept, 'error')
+        Config.Functions.serverNotify(src, L('passenger_must_accept'), 'error')
         return
     end
 
     local fare = calculateFare(session)
     if fare <= 0 then
-        Config.Functions.serverNotify(src, Config.Locales.fare_zero, 'error')
+        Config.Functions.serverNotify(src, L('fare_zero'), 'error')
         return
     end
 
@@ -676,19 +662,20 @@ RegisterNetEvent('taximeter:billPassenger', function(targetServerId)
 
     local xTarget = ESX.GetPlayerFromId(target)
     if not xTarget then
-        Config.Functions.serverNotify(src, Config.Locales.no_passenger, 'error')
+        Config.Functions.serverNotify(src, L('no_passenger'), 'error')
         return
     end
 
     if not chargePlayer(xTarget, fare, 'Taxi-Fahrt') then
-        Config.Functions.serverNotify(src, Config.Locales.not_enough_money, 'error')
-        Config.Functions.serverNotify(target, Config.Locales.billed_passenger_fail:format(fare), 'error')
+        Config.Functions.serverNotify(src, L('not_enough_money'), 'error')
+        Config.Functions.serverNotify(target, L('billed_passenger_fail', fare), 'error')
         return
     end
 
-    local driverShare = payDriverShare(xDriver, fare, 'Taxi-Fahrt')
-    Config.Functions.serverNotify(src, Config.Locales.billed_driver:format(fare, driverShare), 'success')
-    Config.Functions.serverNotify(target, Config.Locales.billed_passenger:format(fare), 'info')
+    local driverShare = ESX.Math.Round(fare * ((100 - Config.SocietyPercent) / 100), 2)
+    payDriverShare(xDriver, fare, 'Taxi-Fahrt')
+    Config.Functions.serverNotify(src, L('billed_driver', fare, driverShare), 'success')
+    Config.Functions.serverNotify(target, L('billed_passenger', fare), 'info')
 
     local distanceKm = session.distanceMeters / 1000.0
     local tripId = LogTaxiTrip({
@@ -718,6 +705,8 @@ RegisterNetEvent('taximeter:billPassenger', function(targetServerId)
         })
     end
 
+    session.billedPassengers = session.billedPassengers or {}
+    session.billedPassengers[target] = true
     session.agreedPassengers[target] = nil
     session.meterStarted = false
     session.distanceMeters = 0.0
@@ -725,11 +714,22 @@ RegisterNetEvent('taximeter:billPassenger', function(targetServerId)
     session.isDriving = false
     session.startedAt = os.time()
 
+    TriggerClientEvent('taximeter:rideBilled', target)
+
     local passengers = getPassengersInVehicle(src)
-    if #passengers > 0 then
+    local needsNewAccept = false
+
+    for i = 1, #passengers do
+        if not isPassengerBilled(session, passengers[i]) then
+            needsNewAccept = true
+            break
+        end
+    end
+
+    if needsNewAccept then
         requestAllPassengersAccept(src)
     else
-        Config.Functions.serverNotify(src, Config.Locales.waiting_passenger, 'info')
+        Config.Functions.serverNotify(src, L('waiting_passenger'), 'info')
     end
 
     pushSessionState(src)
